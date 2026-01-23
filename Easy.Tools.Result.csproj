@@ -37,7 +37,8 @@
 
 		<!-- Build -->
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-		<!--<GenerateDocumentationFile>true</GenerateDocumentationFile>-->
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);1591</NoWarn>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<SuppressTfmSupportBuildWarnings>true</SuppressTfmSupportBuildWarnings>
 		<LangVersion>latest</LangVersion>
