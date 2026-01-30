@@ -1,8 +1,11 @@
-﻿namespace Easy.Tools.Result
+﻿using System;
+using System.Collections.Generic;
+
+namespace Easy.Tools.Result
 {
     /// <summary>
     /// Represents a domain error with a specific code and message.
-    /// This class is immutable.
+    /// This class is immutable and supports equality comparison.
     /// </summary>
     public sealed class Error : IEquatable<Error>
     {
@@ -29,8 +32,8 @@
         /// <summary>
         /// Initializes a new instance of the <see cref="Error"/> class.
         /// </summary>
-        /// <param name="code">The error code.</param>
-        /// <param name="message">The error message.</param>
+        /// <param name="code">The unique error code.</param>
+        /// <param name="message">The detailed error message.</param>
         public Error(string code, string message)
         {
             Code = code;
@@ -38,9 +41,10 @@
         }
 
         /// <summary>
-        /// Implicitly converts a result to a string.
+        /// Implicitly converts an <see cref="Error"/> to a <see cref="string"/> (returns the Code).
         /// </summary>
-        public static implicit operator string(Error error) => error.Code;
+        /// <param name="error">The error instance to convert.</param>
+        public static implicit operator string(Error error) => error?.Code ?? string.Empty;
 
         /// <inheritdoc />
         public bool Equals(Error? other)
@@ -57,18 +61,36 @@
         public override int GetHashCode()
         {
 #if NETSTANDARD2_0 || NETFRAMEWORK
-            // Legacy Method: For .NET Standard 2.0 and .NET Framework 4.x
-            // Since HashCode.Combine struct does not exist in these versions.
+            // Legacy Method
             return (Code.GetHashCode() * 397) ^ Message.GetHashCode();
 #else
-            // Modern Method: For .NET Core 2.1+, .NET 5+, .NET 8.0/9.0
-            // HashCode.Combine is faster and more secure against hash collision attacks.
+            // Modern Method
             return HashCode.Combine(Code, Message);
 #endif
-
         }
 
         /// <inheritdoc />
-        public override string ToString() => $"Code: {Code}, Message: {Message}";
+        public override string ToString() => Code;
+
+        /// <summary>
+        /// Determines whether two specified <see cref="Error"/> objects have the same value.
+        /// </summary>
+        /// <param name="a">The first error to compare.</param>
+        /// <param name="b">The second error to compare.</param>
+        /// <returns><c>true</c> if the value of a is the same as the value of b; otherwise, <c>false</c>.</returns>
+        public static bool operator ==(Error? a, Error? b)
+        {
+            if (a is null && b is null) return true;
+            if (a is null || b is null) return false;
+            return a.Equals(b);
+        }
+
+        /// <summary>
+        /// Determines whether two specified <see cref="Error"/> objects have different values.
+        /// </summary>
+        /// <param name="a">The first error to compare.</param>
+        /// <param name="b">The second error to compare.</param>
+        /// <returns><c>true</c> if the value of a is different from the value of b; otherwise, <c>false</c>.</returns>
+        public static bool operator !=(Error? a, Error? b) => !(a == b);
     }
 }

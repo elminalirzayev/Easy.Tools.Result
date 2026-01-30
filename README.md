@@ -10,16 +10,20 @@
 # Easy.Tools.Result
 
 ## Overview
-**Easy.Tools.Result** is a lightweight, professional .NET library that implements the **Result Pattern**. It helps you write cleaner, more robust code by replacing exceptions with typed return values for flow control.
+**Easy.Tools.Result** is a lightweight, high-performance, and enterprise-ready .NET library that implements the **Result Pattern**. It helps you write cleaner, more robust code by replacing exceptions with typed return values for flow control.
+
+It supports both **Imperative** (`if (result.IsFailure)`) and **Functional** (`result.Match(...)`) programming styles.
 
 ## Features
-* **Type-Safe:** No more `null` checks or magic strings.
-* **Expressive:** Clearly distinguish between Success and Failure.
-* **Immutable:** Thread-safe and predictable.
-* **Standardized:** Consistent error handling across your entire application.
-* **Multi-Target:** Supports `.NET Standard 2.0`,`.NET Standard 2.1`, `.NET 8.0`, `.NET 10.0`, `.NET 6.0`, `.net48`, `.net47`.
+* ** Zero-Allocation:** Optimized `Success()` results are cached to minimize memory pressure (GC friendly).
+* ** Functional Extensions:** Includes `Match`, `Map`, `Tap`, and `Ensure` for fluent chaining.
+* ** Type-Safe:** No more `null` checks or magic strings.
+* ** Immutable:** Thread-safe and predictable behavior.
+* ** Implicit Conversions:** Return `Error` or `Value` directly without verbose syntax.
+* ** Multi-Target:** Supports `.NET 10`, `.NET 8`, `.NET 6`, `.NET Standard 2.0/2.1`, and `.NET Framework 4.7.2+`.
 
 ## Installation
+
 Install via NuGet Package Manager:
 
 ```bash
@@ -36,7 +40,7 @@ dotnet add package Easy.Tools.Result
 
 ### 1. Defining Errors
 
-Instead of throwing exceptions, define your domain errors:
+Instead of throwing exceptions, define your domain errors statically.
 
 ```csharp
 public static class DomainErrors
@@ -48,7 +52,7 @@ public static class DomainErrors
 
 ### 2. Returning a Result
 
-Refactor your services to return `Result<T>` instead of raw objects.
+Refactor your services to return Result<T>. You can use Implicit Conversions for cleaner code.
 
 ```csharp
 public Result<User> GetUserById(int id)
@@ -57,18 +61,20 @@ public Result<User> GetUserById(int id)
 
     if (user is null)
     {
-        // Return a clean failure object
-        return Result.Failure<User>(DomainErrors.UserNotFound);
+        // Implicitly converts Error to Result<User>
+        return DomainErrors.UserNotFound; 
     }
 
-    // Return success with data
-    return Result.Success(user);
+    // Implicitly converts User to Result<User>
+    return user;
 }
 ```
 
-### 3. Handling the Result (The Clean Way)
+### 3. Handling the Result
 
-Use the properties to control flow in your Controllers or Managers.
+#### Option A: Imperative Style (Traditional)
+
+Use properties to control flow explicitly.
 ```csharp
 [HttpGet("{id}")]
 public IActionResult GetUser(int id)
@@ -77,34 +83,93 @@ public IActionResult GetUser(int id)
 
     if (result.IsFailure)
     {
-        // Return 400 or 404 based on the error
         return BadRequest(new { code = result.Error.Code, message = result.Error.Message });
     }
 
     return Ok(result.Value);
 }
 ```
+#### Option B: Functional Style (Fluent & Clean)
 
----
+Use `Match` to handle success and failure in a single expression.
+
+```csharp
+[HttpGet("{id}")]
+public IActionResult GetUser(int id)
+{
+    return _userService.GetUserById(id)
+        .Match(
+            onSuccess: user => Ok(user),
+            onFailure: error => BadRequest(new { error.Code, error.Message })
+        );
+}
+```
+
+#### Option C: Chaining (Advanced)
+
+Use Tap for side effects (logging) and Map for transformation.
+
+```csharp
+public IActionResult GetUserDto(int id)
+{
+    return _userService.GetUserById(id)
+        .Tap(user => _logger.LogInformation($"User found: {user.Name}")) // Side-effect (Logging)
+        .Map(user => new UserDto(user.Name, user.Email))                // Transformation
+        .Match(
+            onSuccess: dto => Ok(dto),
+            onFailure: error => BadRequest(error)
+        );
+}
+```
+
+## Advanced Features
+
+### Deconstruction
+
+You can deconstruct the result into a tuple, similar to Go or Swift.
+
+```csharp
+var (isSuccess, error) = _userService.DeleteUser(id);
+if (!isSuccess)
+{
+    Console.WriteLine($"Error: {error.Code}");
+    return;
+}
+```
+
+### Operator Overloading
+
+You can compare errors directly.
+
+```csharp
+if (result.Error == DomainErrors.UserNotFound)
+{
+    // Handle specific error case
+}
+```
+
 
 ## Why Use This Pattern?
 
--   **Exceptions are for Exceptional Circumstances:** User not found or validation error is _not_ an exception; it's a valid business scenario.
+-   **Exceptions are for Exceptional Circumstances:** A user not being found or a validation error is _not_ an exception; it's a valid business scenario.
     
--   **Performance:** Throwing exceptions is expensive in .NET. Returning a `Result` object is essentially free.
+-   **Performance:** Throwing exceptions is expensive in .NET (stack trace generation). Returning a `Result` object is essentially free, especially with our **Zero-Allocation** optimizations.
     
--   **Readability:** `Result<User>` tells the developer "This might fail", whereas `User` lies (it might be null or throw).
+-   **Readability:** `Result<User>` explicitly tells the developer "This operation might fail", whereas returning `User` lies (it might be null or throw).
+    
 
- ---
+---
 
 ## Contributing
+
 Contributions and suggestions are welcome. Please open an issue or submit a pull request.
 
 ---
 
 ## License
-MIT License
+
+This project is licensed under the MIT License.
 
 ---
 
-© 2025 Elmin Alirzayev / Easy Code Tools
+  2025 Elmin Alirzayev / Easy Code Tools
